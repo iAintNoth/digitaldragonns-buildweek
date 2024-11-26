@@ -6,7 +6,7 @@ import logging
 desktop_path=os.path.join(os.path.expanduser("~"), "Desktop")
 log_filename=datetime.now().strftime("scan_log_%Y-%m-%d_%H-%M-%S.log")
 log_filepath=os.path.join(desktop_path, log_filename)
-logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
+logging.basicConfig(filename=log_filepath, level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
 def check_metodi():
     url=input("Inserisci l'url da verificare: ").strip()
