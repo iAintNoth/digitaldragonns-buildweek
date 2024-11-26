@@ -1,10 +1,10 @@
 import requests # type:ignore
 import os
-import datetime
+from datetime import datetime
 import logging
 
 desktop_path=os.path.join(os.path.expanduser("~"), "Desktop")
-log_filename=datetime.now.strftime("scan_log_%Y-%m-%d_%H-%M-%S.log")
+log_filename=datetime.now().strftime("scan_log_%Y-%m-%d_%H-%M-%S.log")
 log_filepath=os.path.join(desktop_path, log_filename)
 logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s-%(levelname)s-%(message)s")
 
