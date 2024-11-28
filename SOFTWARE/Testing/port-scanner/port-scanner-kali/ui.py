@@ -1,12 +1,14 @@
 import customtkinter as ctk
 import threading
 from customtkinter import CTkImage
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 import queue
-from tkinter import PhotoImage
-from PIL import Image, ImageTk
+from PIL import Image
 from functions import start_scan
 import pandas as pd
+from tkinter import PhotoImage
+from PIL import Image, ImageTk
+import openpyxl # type: ignore
 
 # Variabili globali per i box dei risultati
 open_ports_box = None
@@ -28,7 +30,6 @@ def login(username_entry, password_entry, authenticate_user, login_window):
     else:
         messagebox.showerror("Errore", result["message"])
 
-# Funzione per mostrare la finestra principale di scansione
 def show_main_window():
     global open_ports_box, filtered_ports_box, closed_ports_box, error_ports_box  # Rendi globali le variabili
 
@@ -52,47 +53,62 @@ def show_main_window():
     left_frame = ctk.CTkFrame(main_window)
     left_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
+    # Aggiungi un frame verticale per centrare gli elementi
+    top_frame = ctk.CTkFrame(left_frame)
+    top_frame.pack(pady=30, padx=10, fill='y')  # Utilizza 'fill' per espandere il frame verticalmente
+
     # Aggiungi il contenuto della colonna sinistra (dati di input)
-    ip_label = ctk.CTkLabel(left_frame, text="Inserisci l'IP da scansionare:")
+    ip_label = ctk.CTkLabel(top_frame, text="Inserisci l'IP da scansionare:")
     ip_label.pack(pady=10)
-    ip_entry = ctk.CTkEntry(left_frame)
+    ip_entry = ctk.CTkEntry(top_frame)
     ip_entry.pack(pady=10)
 
-    specific_ports_label = ctk.CTkLabel(left_frame, text="Porte specifiche (es. 22,80,443):")
+    specific_ports_label = ctk.CTkLabel(top_frame, text="Porte specifiche (es. 22,80,443):")
     specific_ports_label.pack(pady=10)
-    specific_ports_entry = ctk.CTkEntry(left_frame)
+    specific_ports_entry = ctk.CTkEntry(top_frame)
     specific_ports_entry.pack(pady=10)
 
-    start_port_label = ctk.CTkLabel(left_frame, text="Porta iniziale:")
+    start_port_label = ctk.CTkLabel(top_frame, text="Porta iniziale:")
     start_port_label.pack(pady=10)
-    start_port_entry = ctk.CTkEntry(left_frame)
+    start_port_entry = ctk.CTkEntry(top_frame)
     start_port_entry.pack(pady=10)
 
-    end_port_label = ctk.CTkLabel(left_frame, text="Porta finale:")
+    end_port_label = ctk.CTkLabel(top_frame, text="Porta finale:")
     end_port_label.pack(pady=10)
-    end_port_entry = ctk.CTkEntry(left_frame)
+    end_port_entry = ctk.CTkEntry(top_frame)
     end_port_entry.pack(pady=10)
 
-    scan_button = ctk.CTkButton(left_frame, text="Scansiona", command=lambda: start_scan_thread(ip_entry, start_port_entry, end_port_entry, specific_ports_entry))
+    scan_button = ctk.CTkButton(top_frame, text="Scansiona", command=lambda: start_scan_thread(ip_entry, start_port_entry, end_port_entry, specific_ports_entry))
     scan_button.pack(pady=20)
+
+    # Pulsante di salvataggio sotto il pulsante di scansione
+    save_button = ctk.CTkButton(top_frame, text="Salva Risultati", command=save_scan_results)
+    save_button.pack(pady=10)
 
     # Sezione destra (risultati)
     right_frame = ctk.CTkFrame(main_window)
     right_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
-    # Aggiungi un pulsante per salvare i risultati
-    save_button = ctk.CTkButton(right_frame, text="Salva Risultati", command=save_scan_results)
-    save_button.pack(pady=20)
-
-    # Risultati: Box per porte aperte, filtrate, chiuse e con errore
+    # Aggiungi le etichette per ogni tipo di porta
+    open_ports_label = ctk.CTkLabel(right_frame, text="Porte Aperte:")
+    open_ports_label.pack(pady=0)
     open_ports_box = ctk.CTkTextbox(right_frame, height=100)
-    open_ports_box.pack(pady=10)
+    open_ports_box.pack(pady=5)
+
+    filtered_ports_label = ctk.CTkLabel(right_frame, text="Porte Filtrate:")
+    filtered_ports_label.pack(pady=0)
     filtered_ports_box = ctk.CTkTextbox(right_frame, height=100)
-    filtered_ports_box.pack(pady=10)
+    filtered_ports_box.pack(pady=5)
+
+    closed_ports_label = ctk.CTkLabel(right_frame, text="Porte Chiuse:")
+    closed_ports_label.pack(pady=0)
     closed_ports_box = ctk.CTkTextbox(right_frame, height=100)
-    closed_ports_box.pack(pady=10)
+    closed_ports_box.pack(pady=5)
+
+    error_ports_label = ctk.CTkLabel(right_frame, text="Porte con Errore:")
+    error_ports_label.pack(pady=0)
     error_ports_box = ctk.CTkTextbox(right_frame, height=100)  # Box per porte con errore
-    error_ports_box.pack(pady=10)
+    error_ports_box.pack(pady=5)
 
     # Impostiamo il layout per permettere la ridimensionabilità
     main_window.grid_rowconfigure(0, weight=1)
@@ -220,11 +236,15 @@ def save_scan_results():
             "Error Ports": error_ports_list,
         })
 
-        # Salva i risultati in un file Excel
-        file_path = "scan_results.xlsx"
-        df.to_excel(file_path, index=False)
+        # Apri la finestra di dialogo per scegliere la cartella e il nome del file
+        file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")])
 
-        messagebox.showinfo("Salvataggio completato", f"I risultati sono stati salvati in {file_path}")
+        if file_path:  # Se l'utente ha selezionato un percorso
+            # Salva i risultati in un file Excel
+            df.to_excel(file_path, index=False)
+            messagebox.showinfo("Salvataggio completato", f"I risultati sono stati salvati in {file_path}")
+        else:
+            messagebox.showwarning("Salvataggio annullato", "L'operazione di salvataggio è stata annullata.")
 
     except Exception as e:
         messagebox.showerror("Errore", f"Si è verificato un errore durante il salvataggio dei risultati: {str(e)}")
