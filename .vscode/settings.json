@@ -1,5 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./SOFTWARE/Testing/requestHTTP/HTTPbeckend"
-    ]
-}
